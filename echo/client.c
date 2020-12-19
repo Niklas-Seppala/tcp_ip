@@ -3,9 +3,8 @@
  *
  *       Filename:  client.c
  *
- *    Description:  TCP/IP client for echo server. This is 
- *                  pretty cool :3
- *
+ *    Description:  TCP/IP client for echo server.
+ *                  
  *        Version:  1.0
  *        Created:  12/18/20 16:32:01
  *       Revision:  none
@@ -28,33 +27,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define DEFAULT_PORT 7
-#define ECHO_SIZE 256
-#define FATAL 0
-#define MINOR 1
+#include "myecho.h"
 
 extern int errno;
 
-void user_err(const char* message, const char *details, int error_flag)
-{
-    fputs(message, stderr);
-    fputs(": ", stderr);
-    fputs(details, stderr);
-    fputc('\n', stderr);
-
-    if (error_flag == FATAL)
-        exit(1);
-}
-
-void sys_err(const char* message, int error_flag)
-{
-    perror(message);
-
-    if (error_flag == FATAL)
-        exit(1);
-}
-
-
+/**
+ * structure that holds command
+ * line arguments for this client
+ * program.
+ */
 struct args 
 {
     char* echo;
@@ -65,26 +46,30 @@ struct args
 /* 
  * Creates agrument data structure from
  * command line arguments.
+ *
+ * @param argv command line argument vector
+ * @param arg_count command line argument count
+ * @param user_args pointer to user arguments
  */
 void parse_args(char** argv, int arg_count, struct args* user_args)
 {   
     // Set echo and ip args.
-    if (strlen(argv[2]) <= ECHO_SIZE)
+    if (strlen(argv[2]) <= BUFFER_SIZE)
         user_args->echo = argv[2];
     else
-        user_err("Size error", "Echo string is too long.", FATAL);
+        user_err("Size error", "Echo string is too long.", E_FATAL);
 
     if (strlen(argv[1]) <= INET_ADDRSTRLEN)
         user_args->ip = argv[1];
     else
-        user_err("Size error", "Server ip is invalid", FATAL);
+        user_err("Size error", "Server ip is invalid", E_FATAL);
 
     // Determines if client is using user defined port or default.    
     if (arg_count == 4)
     {
         long parsed_port = strtol(argv[3], NULL, 10);
         if (errno != 0)
-            user_err("Parsing error", "port could not be parsed", FATAL);
+            user_err("Parsing error", "port could not be parsed", E_FATAL);
 
         user_args->port = htons(parsed_port);
     }
@@ -92,13 +77,10 @@ void parse_args(char** argv, int arg_count, struct args* user_args)
         user_args->port = DEFAULT_PORT;
 }
 
-void create_socket(int* sock)
-{
-    *sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if ((*sock) < 0)
-        sys_err("Could not create a socket!", FATAL);
-}
-
+/**
+ * Fills the address data to sockaddr struct
+ * from command line parameters. 
+ */
 void create_address(struct sockaddr_in* server_addr, struct args* args)
 {
     memset(server_addr, 0, sizeof(*server_addr));
@@ -107,61 +89,72 @@ void create_address(struct sockaddr_in* server_addr, struct args* args)
     int success;
     success = inet_pton(AF_INET, args->ip, &server_addr->sin_addr.s_addr);
     if (success == 0)
-        user_err("inet_pton() failed", "invalid address.", FATAL);
+        user_err("inet_pton() failed", "invalid address.", E_FATAL);
     else if (success == -1)
-        sys_err("inet_pton failed", FATAL);
+        sys_err("inet_pton failed", E_FATAL);
     
     server_addr->sin_port = args->port;
 }
 
+/**
+ * Sends message to server.
+ *
+ * @param echo message string
+ * @param size size of the message
+ * @param sock socket handle
+ *
+ * @return the amount of bytes sent to server
+ */
 ssize_t send_echo(const char* echo, size_t size, const int* sock)
 {
     ssize_t bytes_sent = send(*sock, echo, size, 0);
     if (bytes_sent < 0)
-        sys_err("send() failed.", FATAL);
+        sys_err("send() failed.", E_FATAL);
     else if (bytes_sent != size)
-        user_err("send()", "Unexpected amount of bytes sent.", MINOR);
+        user_err("send()", "Unexpected amount of bytes sent.", E_MINOR);
     
     return bytes_sent;
 }
 
+/**
+ * Waits for echo to return from the server, then
+ * prints it to console and closes the socket.
+ *
+ * @param sock socket handle
+ * @param bytes_set the amount of bytes sent to server
+ */
 void receive_echo(const int* sock, ssize_t bytes_sent)
 {
     ssize_t bytes = 0;
     unsigned int bytes_received = 0;
-
-    fputs("response from server:\n    ", stdout);
+    
+    fputs("Response from server: ", stdout);
     while (bytes_received < bytes_sent)
     {
-        char buffer[ECHO_SIZE];
-        bytes = recv(*sock, buffer, ECHO_SIZE-1, 0);
+        char buffer[BUFFER_SIZE];
+        bytes = recv(*sock, buffer, BUFFER_SIZE-1, 0);
         if (bytes < 0)
-            sys_err("recv() failed.", FATAL);
+            sys_err("recv() failed.", E_FATAL);
         else if (bytes == 0)
-            user_err("recv() failed.", "Connection closed", FATAL);
+            user_err("recv() failed.", "Connection closed", E_FATAL);
         
         bytes_received += bytes;
+        buffer[bytes_received] = '\0'; // Terminate the string.
         fputs(buffer, stdout);
     }
     fputc('\n', stdout);
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char** argv)
 {
     // Validate command line arguments and parse them to
     // args struct.
     if (argc < 3 || argc > 4)
-        user_err("Param(s)", "<Address> <Echo String> (<Port>)", FATAL);
+        user_err("Param(s)", "<Address> <Echo String> (<Port>)", E_FATAL);
     
     struct args user_args;
     parse_args(argv, argc, &user_args);
     
-    /*
-    printf("%s\n", user_args.ip);
-    printf("%s\n", user_args.echo);
-    printf("%#08x\n", user_args.port);
-    */
-
     // Create the socket and configure address
     int sock = 0;
     create_socket(&sock);
@@ -170,7 +163,7 @@ int main(int argc, char* argv[])
     
     // Start connection
     if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
-        sys_err("connect() failed.", FATAL);
+        sys_err("connect() failed.", E_FATAL);
 
     // Send message to server
     ssize_t bytes_sent = send_echo(user_args.echo, strlen(user_args.echo), &sock);
