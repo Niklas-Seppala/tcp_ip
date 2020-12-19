@@ -30,7 +30,6 @@
 
 #define DEFAULT_PORT 7
 #define ECHO_SIZE 256
-#define IPV4_CHAR_SIZE 16
 #define FATAL 0
 #define MINOR 1
 
@@ -75,7 +74,7 @@ void parse_args(char** argv, int arg_count, struct args* user_args)
     else
         user_err("Size error", "Echo string is too long.", FATAL);
 
-    if (strlen(argv[1]) <= IPV4_CHAR_SIZE)
+    if (strlen(argv[1]) <= INET_ADDRSTRLEN)
         user_args->ip = argv[1];
     else
         user_err("Size error", "Server ip is invalid", FATAL);
