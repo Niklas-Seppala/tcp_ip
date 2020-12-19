@@ -70,12 +70,12 @@ struct args
 void parse_args(char** argv, int arg_count, struct args* user_args)
 {   
     // Set echo and ip args.
-    if (sizeof(argv[2]) <= ECHO_SIZE)
+    if (strlen(argv[2]) <= ECHO_SIZE)
         user_args->echo = argv[2];
     else
         user_err("Size error", "Echo string is too long.", FATAL);
 
-    if (sizeof(argv[1]) <= IPV4_CHAR_SIZE)
+    if (strlen(argv[1]) <= IPV4_CHAR_SIZE)
         user_args->ip = argv[1];
     else
         user_err("Size error", "Server ip is invalid", FATAL);
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
 {
     // Validate command line arguments and parse them to
     // args struct.
-    if (argc < 3 || argc < 4)
+    if (argc < 3 || argc > 4)
         user_err("Param(s)", "<Address> <Echo String> (<Port>)", FATAL);
     
     struct args user_args;
@@ -178,6 +178,7 @@ int main(int argc, char* argv[])
     
     // Receive echo from server
     receive_echo(&sock, bytes_sent);
+    close(sock);
     return 0;
 }
 
