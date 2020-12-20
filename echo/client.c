@@ -1,21 +1,3 @@
-/*
- * =====================================================================================
- *
- *       Filename:  client.c
- *
- *    Description:  TCP/IP client for echo server.
- *                  
- *        Version:  1.0
- *        Created:  12/18/20 16:32:01
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  Niklas Seppala, 
- *   Organization:  Metropolia AMK
- *
- * =====================================================================================
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

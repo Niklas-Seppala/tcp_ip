@@ -1,20 +1,3 @@
-/*
- * =====================================================================================
- *
- *       Filename:  server.c
- *
- *    Description:  TCP/IP echo server.
- *
- *        Version:  1.0
- *        Created:  12/19/20 14:23:18
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  Niklas Seppala,
- *   Organization:  Metropolia AMK
- *
- * =====================================================================================
- */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

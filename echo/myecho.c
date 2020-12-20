@@ -1,21 +1,3 @@
-/*
- * =====================================================================================
- *
- *       Filename:  myecho.c
- *
- *    Description:  
- *
- *        Version:  1.0
- *        Created:  12/19/20 22:53:26
- *       Revision:  none
- *       Compiler:  gcc
- *
- *         Author:  Niklas Seppala, 
- *   Organization:  Metropolia AMK
- *
- * =====================================================================================
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/socket.h>
