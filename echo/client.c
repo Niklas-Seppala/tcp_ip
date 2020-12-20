@@ -36,10 +36,10 @@ extern int errno;
  * line arguments for this client
  * program.
  */
-struct args 
+struct args
 {
-    char* echo;
-    char* ip;
+    char *echo;
+    char *ip;
     in_port_t port;
 };
 
@@ -51,8 +51,8 @@ struct args
  * @param arg_count command line argument count
  * @param user_args pointer to user arguments
  */
-void parse_args(char** argv, int arg_count, struct args* user_args)
-{   
+void parse_args(char **argv, int arg_count, struct args *user_args)
+{
     // Set echo and ip args.
     if (strlen(argv[2]) <= BUFFER_SIZE)
         user_args->echo = argv[2];
@@ -64,7 +64,7 @@ void parse_args(char** argv, int arg_count, struct args* user_args)
     else
         user_err("Size error", "Server ip is invalid", E_FATAL);
 
-    // Determines if client is using user defined port or default.    
+    // Determines if client is using user defined port or default.
     if (arg_count == 4)
     {
         long parsed_port = strtol(argv[3], NULL, 10);
@@ -81,7 +81,7 @@ void parse_args(char** argv, int arg_count, struct args* user_args)
  * Fills the address data to sockaddr struct
  * from command line parameters. 
  */
-void create_address(struct sockaddr_in* server_addr, struct args* args)
+void create_address(struct sockaddr_in *server_addr, struct args *args)
 {
     memset(server_addr, 0, sizeof(*server_addr));
     server_addr->sin_family = AF_INET;
@@ -92,7 +92,7 @@ void create_address(struct sockaddr_in* server_addr, struct args* args)
         user_err("inet_pton() failed", "invalid address.", E_FATAL);
     else if (success == -1)
         sys_err("inet_pton failed", E_FATAL);
-    
+
     server_addr->sin_port = args->port;
 }
 
@@ -105,14 +105,14 @@ void create_address(struct sockaddr_in* server_addr, struct args* args)
  *
  * @return the amount of bytes sent to server
  */
-ssize_t send_echo(const char* echo, size_t size, const int* sock)
+ssize_t send_echo(const char *echo, size_t size, const int *sock)
 {
     ssize_t bytes_sent = send(*sock, echo, size, 0);
     if (bytes_sent < 0)
         sys_err("send() failed.", E_FATAL);
     else if (bytes_sent != size)
         user_err("send()", "Unexpected amount of bytes sent.", E_MINOR);
-    
+
     return bytes_sent;
 }
 
@@ -123,21 +123,21 @@ ssize_t send_echo(const char* echo, size_t size, const int* sock)
  * @param sock socket handle
  * @param bytes_set the amount of bytes sent to server
  */
-void receive_echo(const int* sock, ssize_t bytes_sent)
+void receive_echo(const int *sock, ssize_t bytes_sent)
 {
     ssize_t bytes = 0;
     unsigned int bytes_received = 0;
-    
+
     fputs("Response from server: ", stdout);
     while (bytes_received < bytes_sent)
     {
         char buffer[BUFFER_SIZE];
-        bytes = recv(*sock, buffer, BUFFER_SIZE-1, 0);
+        bytes = recv(*sock, buffer, BUFFER_SIZE - 1, 0);
         if (bytes < 0)
             sys_err("recv() failed.", E_FATAL);
         else if (bytes == 0)
             user_err("recv() failed.", "Connection closed", E_FATAL);
-        
+
         bytes_received += bytes;
         buffer[bytes_received] = '\0'; // Terminate the string.
         fputs(buffer, stdout);
@@ -145,32 +145,31 @@ void receive_echo(const int* sock, ssize_t bytes_sent)
     fputc('\n', stdout);
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
     // Validate command line arguments and parse them to
     // args struct.
     if (argc < 3 || argc > 4)
         user_err("Param(s)", "<Address> <Echo String> (<Port>)", E_FATAL);
-    
+
     struct args user_args;
     parse_args(argv, argc, &user_args);
-    
+
     // Create the socket and configure address
     int sock = 0;
     create_socket(&sock);
     struct sockaddr_in server_addr;
     create_address(&server_addr, &user_args);
-    
+
     // Start connection
-    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         sys_err("connect() failed.", E_FATAL);
 
     // Send message to server
     ssize_t bytes_sent = send_echo(user_args.echo, strlen(user_args.echo), &sock);
-    
+
     // Receive echo from server
     receive_echo(&sock, bytes_sent);
     close(sock);
     return 0;
 }
-

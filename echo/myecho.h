@@ -8,8 +8,8 @@
 #define FOREVER 1
 #define MAX_CONN_COUNT 5
 
-void user_err(const char* source, const char* details, int flag);
-void sys_err(const char* message, int flag);
-void create_socket(int* sock);
+void user_err(const char *source, const char *details, int flag);
+void sys_err(const char *message, int flag);
+void create_socket(int *sock);
 
 #endif

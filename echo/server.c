@@ -10,7 +10,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  Niklas Seppala, 
+ *         Author:  Niklas Seppala,
  *   Organization:  Metropolia AMK
  *
  * =====================================================================================
@@ -37,7 +37,7 @@ extern int errno;
  * @param port desired port
  *
  */
-void create_address(struct sockaddr_in* addr, in_port_t port)
+void create_address(struct sockaddr_in *addr, in_port_t port)
 {
     memset(addr, 0, sizeof(*addr));
     addr->sin_family = AF_INET;
@@ -57,7 +57,7 @@ void handle_client(int client_sock)
     ssize_t bytes_received = recv(client_sock, buffer, BUFFER_SIZE, 0);
     if (bytes_received < 0)
         sys_err("recv() failed", E_FATAL);
-    
+
     while (bytes_received > 0)
     {
         ssize_t bytes_sent = send(client_sock, buffer, bytes_received, 0);
@@ -84,11 +84,11 @@ void accept_conn(int sock)
 {
     struct sockaddr_in client_addr;
     socklen_t client_addr_len = sizeof(client_addr);
-    
-    int client_sock = accept(sock, (struct sockaddr*)&client_addr, &client_addr_len);
+
+    int client_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addr_len);
     if (client_sock < 0)
         sys_err("accept() failed: ", E_FATAL);
-    
+
     char client_name[INET_ADDRSTRLEN];
     if (inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, client_name, sizeof(client_name)) != NULL)
         printf("Client: %s%d\n", client_name, ntohs(client_addr.sin_port));
@@ -107,30 +107,31 @@ void accept_conn(int sock)
  *
  * @return ready to use port value.
  */
-in_port_t parse_port(int argc, char** argv)
+in_port_t parse_port(int argc, char **argv)
 {
-    if (argc != 2) user_err("Parameter(s)", "<Port>", E_FATAL);
-    
+    if (argc != 2)
+        user_err("Parameter(s)", "<Port>", E_FATAL);
+
     long parsed_port = strtol(argv[1], NULL, 0);
     if (errno != 0)
         sys_err("Port parameter could not be parsed", E_FATAL);
     return htons(parsed_port);
 }
 
-void main(int argc, char** argv)
+void main(int argc, char **argv)
 {
     in_port_t port = parse_port(argc, argv);
-    
-    int server_sock = 0; 
+
+    int server_sock = 0;
     create_socket(&server_sock);
     struct sockaddr_in server_addr;
     create_address(&server_addr, port);
 
     // Bind socket to local address.
-    if (bind(server_sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    if (bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         sys_err("socket binding failed", E_FATAL);
-    
-    // Set server socket to listen incoming connections.    
+
+    // Set server socket to listen incoming connections.
     if (listen(server_sock, MAX_CONN_COUNT) < 0)
         sys_err("listen() failed: ", E_FATAL);
 
@@ -138,4 +139,3 @@ void main(int argc, char** argv)
     while (FOREVER)
         accept_conn(server_sock);
 }
-

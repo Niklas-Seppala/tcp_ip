@@ -31,7 +31,7 @@
  * @param message description message
  * @param flag error severity flag
  */
-void user_err(const char* source, const char* details, int flag)
+void user_err(const char *source, const char *details, int flag)
 {
     fputs(source, stderr);
     fputs(": ", stderr);
@@ -48,7 +48,7 @@ void user_err(const char* source, const char* details, int flag)
  * @param message description message
  * @param flag error severity flag
  */
-void sys_err(const char* message, int flag)
+void sys_err(const char *message, int flag)
 {
     perror(message);
     if (flag == E_FATAL)
@@ -60,10 +60,9 @@ void sys_err(const char* message, int flag)
  *
  * @param sock pointer to socket handle
  */
-void create_socket(int* sock)
+void create_socket(int *sock)
 {
     *sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if ((*sock) < 0)
         sys_err("socket()", E_FATAL);
 }
-
