@@ -127,6 +127,28 @@ void receive_echo(const int *sock, ssize_t bytes_sent)
     fputc('\n', stdout);
 }
 
+/**
+ * @brief logs connection info to console.
+ * 
+ * @param sock socket handle
+ */
+void log_connection(int sock)
+{
+    struct sockaddr_in server, me;
+    socklen_t ipv4_addr_len = sizeof(server);
+
+    getsockname(sock, (struct sockaddr *)&me, &ipv4_addr_len);
+    getpeername(sock, (struct sockaddr *)&server, &ipv4_addr_len);
+
+    char *my_ip = inet_ntoa(me.sin_addr);
+    uint16_t my_port = ntohs(me.sin_port);
+    char *server_ip = inet_ntoa(server.sin_addr);
+    uint16_t server_port = ntohs(server.sin_port);
+
+    printf("Server address: %s:%u\n", server_ip, (unsigned int)server_port);
+    printf("My address    : %s:%u\n", my_ip, (unsigned int)my_port);
+}
+
 int main(int argc, char **argv)
 {
     // Validate command line arguments and parse them to
@@ -146,6 +168,8 @@ int main(int argc, char **argv)
     // Start connection
     if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         sys_err("connect() failed.", E_FATAL);
+    else
+        log_connection(sock);
 
     // Send message to server
     ssize_t bytes_sent = send_echo(user_args.echo, strlen(user_args.echo), &sock);
