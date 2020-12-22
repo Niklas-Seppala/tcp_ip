@@ -56,6 +56,18 @@ void handle_client(int client_sock)
     close(client_sock);
 }
 
+void log_connection(int sock)
+{
+    struct sockaddr_in client;
+    socklen_t client_size = sizeof(client);
+    getpeername(sock, (struct sockaddr *)&client, &client_size);
+
+    char *client_ip = inet_ntoa(client.sin_addr);
+    uint16_t client_port = ntohs(client.sin_port);
+
+    printf("Serving client: %s:%u\n", client_ip, client_port);
+}
+
 /**
  * Accepts connection and prints client
  * address to console. If all is good,
@@ -71,13 +83,8 @@ void accept_conn(int sock)
     int client_sock = accept(sock, (struct sockaddr *)&client_addr, &client_addr_len);
     if (client_sock < 0)
         sys_err("accept() failed: ", E_FATAL);
-
-    char client_name[INET_ADDRSTRLEN];
-    if (inet_ntop(AF_INET, &client_addr.sin_addr.s_addr, client_name, sizeof(client_name)) != NULL)
-        printf("Client: %s%d\n", client_name, ntohs(client_addr.sin_port));
     else
-        printf("%s", "Unable to get client address!");
-
+        log_connection(client_sock);
     handle_client(client_sock);
 }
 
