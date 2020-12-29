@@ -9,60 +9,48 @@
 
 #include "todolist.h"
 
+void get_input(const char* output, char *buffer, size_t buff_len, size_t *out_len) {
+    if (output != NULL) {
+        fputs(output, stdout);
+    }
+    fgets(buffer, buff_len, stdin);
+    size_t len = strlen(buffer);
+    if (buffer[len - 1] == '\n') {
+        buffer[len - 1] = '\0';
+        if (out_len != NULL) {
+            *out_len = len-1;
+        }
+    } else if (out_len != NULL) {
+        *out_len = len;
+    }
+}
+
 /**
- * @brief Prints user related error to console. Exits program if
- * flag was set to FATAL.
+ * @brief Prints user related error to console. Exits program
+ * with EXIT_FAILURE.
  * 
  * @param source source function
  * @param detail description message
- * @param flags error severity flag
  */
-void user_err(const char *source, const char *detail, int flags)
+void user_err(const char *source, const char *detail)
 {
     fputs(source, stderr);
     fputs(": ", stderr);
     fputs(detail, stderr);
     fputc('\n', stderr);
-    if (flags == FATAL)
-        exit(EXIT_FAILURE);
+    exit(EXIT_FAILURE);
 }
 
 /**
  * @brief Prints syste related error to console. Exits the program
- * if flag was set to FATAL.
+ * with EXIT_FAILURE.
  *
  * @param source description message
- * @param flags error severity flag
  */
-void sys_err(const char *source, int flags)
+void sys_err(const char *source)
 {
     perror(source);
-    if (flags == FATAL)
-        exit(EXIT_FAILURE);
-}
-
-uint8_t word_count(const char *buffer)
-{
-    uint8_t size_counter = 0;
-    char quote = 0;
-    for (size_t i = 0; i < COMMAND_SIZE; i++)
-    {
-        if (buffer[i] == '"')
-        {
-            quote ? 0 : 1;
-        }
-        if (buffer[i] == '\0')
-        {
-            size_counter++;
-            break;
-        }
-        else if (buffer[i] == ' ' && quote)
-        {
-            size_counter++;
-        }
-    }
-    size_counter++;
-    return size_counter;
+    exit(EXIT_FAILURE);
 }
 
 void clear()
@@ -74,6 +62,31 @@ void clear()
 #endif
 }
 
+void print_port(int sock, const char* template_str, FILE *stream) {
+    
+    struct sockaddr_in addr;
+    socklen_t s_size = sizeof(addr);
+    getsockname(sock, (struct sockaddr*)&addr, &s_size);
+    in_port_t port = ntohs(addr.sin_port);
+
+    const char * temp = template_str == NULL ? "port: %u\n" : template_str;
+    fprintf(stream, temp, port);
+}
+
+void print_sock(int sock, FILE *stream)
+{
+    void *ip = NULL;
+    char buffer[INET_ADDRSTRLEN];
+
+    struct sockaddr_in ipv4_addr;
+    socklen_t size = sizeof(ipv4_addr);
+    getsockname(sock, (struct sockaddr*)&ipv4_addr, &size);
+    ip = &(ipv4_addr.sin_addr);
+    in_port_t port = ntohs(ipv4_addr.sin_port);
+    inet_ntop(AF_INET, ip, buffer, size);
+    fprintf(stream, "%s:%u\n", buffer, port);
+}
+
 void print_peer(int sock)
 {
     void *ip = NULL;
@@ -81,23 +94,30 @@ void print_peer(int sock)
     struct sockaddr_in ipv4_addr;
     socklen_t size = sizeof(ipv4_addr);
 
+    getpeername(sock, (struct sockaddr *)&ipv4_addr, &size);
     in_port_t port = ntohs(ipv4_addr.sin_port);
-    getpeername(sock, (struct sockaddr *)(&ipv4_addr), &size);
     ip = &(ipv4_addr.sin_addr);
     inet_ntop(ipv4_addr.sin_family, ip, buffer, size);
     fprintf(stdout, "%s:%u\n", buffer, port);
 }
 
+void str_ins(char *dest, char *src, int offset, size_t len) {
+    dest += offset;
+    for (size_t i = 0; i < len; i++)
+        *dest++ = *src++;
+}
+
 void print_addr_info(struct sockaddr *addr, FILE *stream)
 {
-    if (addr == NULL || stream == NULL)
+    if (addr == NULL || stream == NULL) {
         return;
+    }
 
     void *numeric_addr;
     char buffer[INET6_ADDRSTRLEN];
     in_port_t port;
-    switch (addr->sa_family)
-    {
+
+    switch (addr->sa_family) {
     case AF_INET:
         numeric_addr = &((struct sockaddr_in *)addr)->sin_addr;
         port = ntohs(((struct sockaddr_in *)addr)->sin_port);
@@ -107,30 +127,22 @@ void print_addr_info(struct sockaddr *addr, FILE *stream)
         port = ntohs(((struct sockaddr_in6 *)addr)->sin6_port);
         break;
     default:
-        fputs("unknown address family", stream);
+        fputs("unknown address family\n", stream);
         return;
     }
-    if (inet_ntop(addr->sa_family, numeric_addr, buffer, sizeof(buffer)) == NULL)
-        fputs("Invalid address", stream);
-    else
-    {
+    if (inet_ntop(addr->sa_family, numeric_addr, buffer, sizeof(buffer)) == NULL) {
+        fputs("Invalid address\n", stream);
+    }
+    else {
         fprintf(stream, "%s", buffer);
-        if (port != 0)
+        if (port != 0) {
             fprintf(stream, ":%u", port);
+        }
         fputc('\n', stream);
     }
 }
 
-void create_addr_query(struct addrinfo *query, int family, int proto, int sockt, int flags)
-{
-    memset(query, 0, sizeof(query));
-    query->ai_family = family;
-    query->ai_protocol = proto;
-    query->ai_socktype = sockt;
-    query->ai_flags = flags;
-}
-
-int setup_server_socket(in_addr_t ip, in_port_t port)
+int setup_server_socket(in_addr_t ip, in_port_t port, int queue_size)
 {
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
@@ -141,13 +153,11 @@ int setup_server_socket(in_addr_t ip, in_port_t port)
 
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock < 0)
-        sys_err("socket()", FATAL);
+        sys_err("socket()");
     if (bind(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-        sys_err("bind()", FATAL);
-    if (listen(sock, MAX_PENDING_CONNECTIONS) < 0)
-        sys_err("listen()", FATAL);
-
-    // print_addr_info((struct sockaddr *)&addr, stdout);
+        sys_err("bind()");
+    if (listen(sock, queue_size) < 0)
+        sys_err("listen()");
     return sock;
 }
 
@@ -171,7 +181,7 @@ int setup_client_socket(const char *host, const char *service)
     struct addrinfo *server_addr;
     int ret_val = getaddrinfo(host, service, &addr_query, &server_addr);
     if (ret_val != 0)
-        user_err("getaddrinfo()", gai_strerror(ret_val), FATAL);
+        user_err("getaddrinfo()", gai_strerror(ret_val));
 
     // Search working address from linked address list.
     int sock = -1;

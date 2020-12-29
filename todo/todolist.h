@@ -6,29 +6,31 @@
 #if !defined(TODO_LIST_H)
 #define TODO_LIST_H
 
-#define MAX_PENDING_CONNECTIONS 5
-#define FOREVER 1
-#define SERVICE_NAME "5050"
-#define COMMAND_SIZE 128
-#define BUFFER_SIZE 256
-#define FATAL 1
-#define MINOR 0
+#define BUFFER_OFFSET 4
+#define SBUFFER_SIZE 64
+#define BUFFER_SIZE 512
 
-struct todo_node
+struct todo_task
 {
-    char *content;
-    char *author;
+    char content[BUFFER_SIZE];
     time_t add_time;
-    time_t deadline_time;
-    struct todo_node *next;
+    struct todo_task *next;
 };
 
-uint8_t word_count(const char *buffer);
-void sys_err(const char *source, int flags);
-void user_err(const char *source, const char *detail, int flags);
-int setup_client_socket(const char *host, const char *servive);
-int setup_server_socket(in_addr_t ip, in_port_t port);
-void clear();
+void sys_err(const char *source);
+void user_err(const char *source, const char *detail);
+
+void print_port(int sock, const char* template_str, FILE *stream);
+void print_sock(int sock, FILE *stream);
 void print_addr_info(struct sockaddr *addr, FILE *stream);
+
+void get_input(const char* output, char *buffer, size_t buff_len, size_t *out_len);
+
+void str_ins(char *dest, char *src, int offset, size_t len);
+
+int setup_client_socket(const char *host, const char *servive);
+int setup_server_socket(in_addr_t ip, in_port_t port, int queue_size);
+
+void clear();
 
 #endif // TODO_LIST_H
