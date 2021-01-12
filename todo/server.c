@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <time.h>
 
+#include "data.h"
 #include "todolist.h"
 
 static const int MAX_PENDING = 5;
@@ -31,56 +32,71 @@ int accept_connection(int server_sock)
 void handle_client(int client_sock, char *buffer, size_t buff_len)
 {
     ssize_t n;
-    while ((n = read(client_sock, buffer, buff_len)) > 0) {
+    while ((n = read(client_sock, buffer, buff_len)) > 0)
+    {
         buffer[n] = 0;
     }
     close(client_sock);
 }
 
-void free_tasks(struct todo_task **head) {
-    if (head == NULL) {
-        return;
-    }
+int parse_cmd(char *recv_bytes, char *cmd)
+{
+    const char res = '|';
+    char *usr_command = strtok(recv_bytes, &res);
+    if (usr_command == NULL)
+        return -1;
+    memcpy(cmd, usr_command, strlen(usr_command));
+    return 0;
+}
 
-    struct todo_task *temp, *current;
-    current = *head;
-    while (current != NULL)
+int parse_bytes(char *recv_bytes, task_t *task)
+{
+    char usr_command[CMD_SIZE+1]; // room for null char
+    if (parse_cmd(recv_bytes, usr_command) < 0)
     {
-        temp = current;
-        current = current->next;
-        free(temp);
+        user_err("parse_cmd()", "Could not parse user's command");
     }
-    *head = NULL;
+
+    if (strcmp(usr_command, CMD_ADD) == 0)
+    {
+        const char res = '|';
+        char *author = strtok(NULL, &res);
+        if (author != NULL)
+        {
+            memcpy(task->author, author, strlen(author));
+        }
+        char *task_content = strtok(NULL, &res);
+        if (task_content != NULL)
+        {
+            memcpy(task->content, task_content, strlen(task_content));
+        }
+        return 1;
+    }
+    else if (strcmp(usr_command, CMD_RMV) == 0)
+    {
+        printf("remove command received\n");
+        return 1;
+    }
+    return -1;
 }
 
-void store_task(struct todo_task **head, const char* task_str) {
 
-    struct todo_task* task = calloc(1, sizeof(struct todo_task));
-    strcpy(task->content, task_str);
-    task->add_time = time(NULL);
-
-    if (*head == NULL) {
-        *head = task;
+int store_task(task_t **head, char* recv_bytes)
+{
+    task_t* task = malloc(sizeof(task_t));
+    if (!parse_bytes(recv_bytes, task))
+    {
+        user_err("recv_msg()", "could not create a task");
         return;
     }
-
-    struct todo_task* current = *head;
-    while (current->next != NULL) {
-        current = current->next;
-    }
-    current->next = task;
+    task->add_time = time(NULL);
+    return ll_add_node(head, task);
 }
 
-void print_stored_tasks(struct todo_task *head, FILE *stream) {
-    while (head != NULL) {
-        fprintf(stream, "\t%s -- %ld\n", head->content, head->add_time);
-        head = head->next;
-    }
-}
-
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     char buffer[BUFFER_SIZE];
-    struct todo_task *task_list = NULL;
+    task_t *task_list = NULL;
 
     in_port_t port = atoi(argv[1]);
 
@@ -93,6 +109,5 @@ int main(int argc, char **argv) {
         int c_socket = accept_connection(s_sock);
         handle_client(c_socket, buffer, BUFFER_SIZE);
         store_task(&task_list, buffer);
-        print_stored_tasks(task_list, stdout);
     }
 }

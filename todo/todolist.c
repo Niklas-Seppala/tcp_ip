@@ -9,7 +9,8 @@
 
 #include "todolist.h"
 
-void get_input(const char* output, char *buffer, size_t buff_len, size_t *out_len) {
+void get_input(const char* output, char *buffer, size_t buff_len, size_t *out_len)
+{
     if (output != NULL) {
         fputs(output, stdout);
     }

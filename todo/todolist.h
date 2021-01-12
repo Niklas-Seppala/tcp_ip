@@ -6,16 +6,20 @@
 #if !defined(TODO_LIST_H)
 #define TODO_LIST_H
 
+#define CMD_SIZE 3
+#define CMD_ADD "ADD"
+#define CMD_RMV "RMV"
 #define BUFFER_OFFSET 4
 #define SBUFFER_SIZE 64
 #define BUFFER_SIZE 512
 
-struct todo_task
-{
-    char content[BUFFER_SIZE];
-    time_t add_time;
-    struct todo_task *next;
-};
+// struct todo_task
+// {
+//     char author[SBUFFER_SIZE];
+//     char content[BUFFER_SIZE];
+//     time_t add_time;
+//     struct todo_task *next;
+// };
 
 void sys_err(const char *source);
 void user_err(const char *source, const char *detail);

@@ -26,7 +26,7 @@ void append_msg(char *msg, char* item, size_t offset, size_t len, size_t* next_o
 void create_msg(char *msg, char *task_buffer, char *username, size_t *len)
 {
     size_t next_offset = 0;
-    append_msg(msg, "ADD", 0, 3, &next_offset);
+    append_msg(msg, CMD_ADD, 0, CMD_SIZE, &next_offset);
     append_msg(msg, username, next_offset, strlen(username), &next_offset);
     append_msg(msg, task_buffer, next_offset, strlen(task_buffer), &next_offset);
     *len = next_offset-1; // remove last '|' from the message
