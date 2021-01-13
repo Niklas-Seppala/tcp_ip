@@ -8,16 +8,28 @@
 #define DB_CONN_ERR (-1)
 #define DB_ERR (-1)
 #define DB_SUCCESS 1
-#define DB_NAME "tasks.db"
+#define DB_INVALID_PARAM (-5)
 #define DB_NO_RESULT (-10)
+
 typedef int (*select_cb)(void *, int, char **, char **);
 
-typedef struct todo_task
+typedef struct node {
+    void *value;
+    struct node *next;
+} node_t;
+
+typedef struct user {
+    int id;
+    char name[SBUFFER_SIZE];
+    time_t timestamp;
+} user_t;
+
+typedef struct task
 {
+    int id;
     char author[SBUFFER_SIZE];
     char content[BUFFER_SIZE];
-    time_t add_time;
-    struct todo_task *next;
+    time_t timestamp;
 } task_t;
 
 // DATABSE
@@ -31,7 +43,7 @@ typedef struct todo_task
  * @return int DB_CONN_ERR if fails
  * @return int DB_SUCCESS if success
  */
-int open_db(char *db_name, sqlite3 **db);
+int db_open(char *db_name, sqlite3 **db);
 
 /**
  * @brief Get the user id by username.
@@ -44,7 +56,7 @@ int open_db(char *db_name, sqlite3 **db);
  * @return DB_NO_RESULT if recieved no data
  * @return DB_ERR if operations related to database failed
  */
-int get_user_id(char *username, sqlite3 *db, int* result);
+int db_select_user(user_t *user, sqlite3 *db);
 
 /**
  * @brief Get the tasks by username from database.
@@ -58,7 +70,45 @@ int get_user_id(char *username, sqlite3 *db, int* result);
  * @return int DB_ERR if query execution fails
  * @return int DB_SUCCCESS if everything OK
  */
-int get_tasks_by_username(char *username, sqlite3 *db, task_t* results);
+int db_select_tasks(user_t *user, sqlite3 *db, node_t* results);
+
+/**
+ * @brief Updates user row on database. Note: user's
+ *        id needs to be set in user struct.
+ * 
+ * @param user user struct
+ * @param db sqlite3 database handle
+ * @param rows_affected affected row count
+ * 
+ * @return int DB_ERR if sql execution failed
+ * @return int SUCCESS if all OK
+ */
+int db_update_user(user_t *user, sqlite3 *db, int *rows_affected);
+
+/**
+ * @brief Deletes user from database. Note: user id
+ *        needs to be set in user struct.
+ * 
+ * @param user user struct
+ * @param db sqlite3 database handle
+ * @param rows_affected count of rows affected
+ * 
+ * @return int DB__ERR if query execuion fails
+ * @return int DB_SUCCESS if all is OK
+ */
+int db_delete_user(user_t *user, sqlite3 *db, int *rows_affected);
+
+/**
+ * @brief Inserts user to database
+ * 
+ * @param user user struct
+ * @param db sqlite3 database handle
+ * @param rows_affected count of affected rows
+ * 
+ * @return int DB_ERR if sql execution failed
+ * @return int SUCCESS if all OK
+ */
+int db_insert_user(user_t *user, sqlite3 *db, int *rows_affected);
 
 /**
  * @brief Inserts task datastruct values to sqlite3
@@ -71,7 +121,7 @@ int get_tasks_by_username(char *username, sqlite3 *db, task_t* results);
  * @return int DB_ERR if fails
  * @return int DB_SUCCESS if success
  */
-int insert_task(task_t *task, sqlite3 *db, int *rows_affected);
+int db_insert_task(task_t *task, sqlite3 *db, int *rows_affected);
 
 /**
  * @brief Creates and executes SQL statement.
@@ -83,7 +133,7 @@ int insert_task(task_t *task, sqlite3 *db, int *rows_affected);
  * @return int DB_SUCCESS if OK
  * @return int DB_ERR if fails
  */
-int insert(char *sql, sqlite3 *db, int *affected_rows);
+int db_insert(char *sql, sqlite3 *db, int *affected_rows);
 
 /**
  * @brief Updates task fields to database.
@@ -96,7 +146,15 @@ int insert(char *sql, sqlite3 *db, int *affected_rows);
  * @return int DB__ERR if query execuion fails
  * @return int DB_SUCCESS if all is OK
  */
-int update_task(task_t *task, sqlite3 *db, int *rows_affected);
+int db_update_task(task_t *task, sqlite3 *db, int *rows_affected);
+
+/**
+ * @brief Drops all tables and creates new ones.
+ * 
+ * @param db sqlite3 database handle
+ * @return int DB_SUCCESS if everything is OK
+ */
+int db_init(sqlite3 *db);
 
 /**
  * @brief Deletes task from database. Note: id is
@@ -110,10 +168,10 @@ int update_task(task_t *task, sqlite3 *db, int *rows_affected);
  * @return int DB__ERR if query execuion fails
  * @return int DB_SUCCESS if all is OK
  */
-int delete_task(task_t *task, sqlite3 *db, int *rows_affected);
+int db_delete_task(task_t *task, sqlite3 *db, int *rows_affected);
+
 
 // DATA STRUCTURES
-
 /**
  * @brief Check if the first item of the
  *        linked list is used.
@@ -122,7 +180,7 @@ int delete_task(task_t *task, sqlite3 *db, int *rows_affected);
  * @return true if head is used.
  * @return false if head is not used.
  */
-bool ll_first_empty(task_t *first);
+bool ll_first_empty(node_t *first);
 
 /**
  * @brief Prints all the tasks in provided
@@ -131,7 +189,7 @@ bool ll_first_empty(task_t *first);
  * @param head list head
  * @param stream output stream
  */
-void ll_print(task_t *head, FILE *stream);
+// void ll_print(node_t *head, FILE *stream);
 
 /**
  * @brief Links the provided node at the end of the
@@ -142,7 +200,7 @@ void ll_print(task_t *head, FILE *stream);
  * @param node Node to be added
  * @return int 1 if success
  */
-int ll_add_node(task_t **head, task_t *node);
+void ll_add_node(node_t **head, node_t *node);
 
 /**
  * @brief Get the last node of the linked list.
@@ -150,7 +208,7 @@ int ll_add_node(task_t **head, task_t *node);
  * @param head linked list head
  * @return task_t* pointer to last node
  */
-task_t *ll_last(task_t *head);
+node_t *ll_last(node_t *head);
 
 /**
  * @brief Execute provided operation for each item
@@ -159,6 +217,6 @@ task_t *ll_last(task_t *head);
  * @param head head of the linked list
  * @param operation operation that gets executed for each iteration
  */
-void ll_foreach(task_t *head, void (*operation)(void *node));
+void ll_foreach(node_t *head, void (*operation)(void *node));
 
 #endif // DATA_H
