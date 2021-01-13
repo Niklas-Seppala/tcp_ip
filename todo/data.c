@@ -183,7 +183,8 @@ int db_select_tasks(user_t *user, sqlite3 *db, node_t *results)
 
     for (node_t *item = results; item != NULL; item = item->next)
     {
-        strcpy(((task_t *)item->value)->author, user->name);
+        ((task_t *)item)->author = user;
+        // strcpy(((task_t *)item->value)->author, user->name);
     }
 
     db_cleanup(sql, db_err_msg);
@@ -227,18 +228,13 @@ int db_insert(char *sql, sqlite3 *db, int *affected_rows)
  */
 int db_update_task(task_t *task, sqlite3 *db, int *rows_affected)
 {
-    int id = DB_NO_RESULT;
-    if (db_select_user(task->author, db, &id) != DB_SUCCESS)
-    {
-        return DB_ERR;
-    }
     char *db_err_msg;
     char *sql = sqlite3_mprintf(
         "UPDATE task\
          SET author='%q', content='%q', timestamp='%d'\
          WHERE id='%q'",
             task->author, task->content,
-            task->timestamp, id
+            task->timestamp, task->author->id
     );
     if (sqlite3_exec(db, sql, NULL, NULL, &db_err_msg) != SQLITE_OK)
     {
@@ -387,13 +383,8 @@ int db_delete_user(user_t *user, sqlite3 *db, int *rows_affected)
  */
 int db_delete_task(task_t *task, sqlite3 *db, int *rows_affected)
 {
-    int id = DB_NO_RESULT;
-    if (db_select_user(task->author, db, &id) != DB_SUCCESS)
-    {
-        return DB_ERR;
-    }
     char *db_err_msg;
-    char *sql = sqlite3_mprintf("DELETE FROM task WHERE id = '%d'", id);
+    char *sql = sqlite3_mprintf("DELETE FROM task WHERE id = '%d'", task->author->id);
     if (sqlite3_exec(db, sql, NULL, NULL, &db_err_msg) != SQLITE_OK)
     {
         db_err("An error occured while deleting task: %s\n",
@@ -422,7 +413,8 @@ int db_init(sqlite3 *db)
         "CREATE TABLE IF NOT EXISTS user( \
             id INTEGER PRIMARY KEY AUTOINCREMENT, \
             timestamp INTEGER NOT NULL, \
-            name TEXT NOT NULL UNIQUE \
+            name TEXT NOT NULL UNIQUE, \
+            email TEXT NOT NULL UNIQUE \
         );";
     char *sql_tasktable =
         "CREATE TABLE IF NOT EXISTS task( \
@@ -489,8 +481,6 @@ int db_open(char *db_name, sqlite3 **db)
     }
     return DB_SUCCESS;
 }
-
-
 
 
 /*************************************************************/

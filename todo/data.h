@@ -21,13 +21,14 @@ typedef struct node {
 typedef struct user {
     int id;
     char name[SBUFFER_SIZE];
+    char email[SBUFFER_SIZE];
     time_t timestamp;
 } user_t;
 
 typedef struct task
 {
     int id;
-    char author[SBUFFER_SIZE];
+    user_t *author;
     char content[BUFFER_SIZE];
     time_t timestamp;
 } task_t;
@@ -56,7 +57,7 @@ int db_open(char *db_name, sqlite3 **db);
  * @return DB_NO_RESULT if recieved no data
  * @return DB_ERR if operations related to database failed
  */
-int db_select_user(user_t *user, sqlite3 *db);
+int db_select_user(user_t *user, sqlite3 *db, user_t *result);
 
 /**
  * @brief Get the tasks by username from database.

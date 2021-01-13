@@ -58,5 +58,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Binary folders
+obj/
+out/
+
 #VSCODE
 **.vscode/
