@@ -2,9 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "data.h"
 #include <stdbool.h>
 #include <time.h>
+
+#include "data.h"
 
 static int create_task(void* list, int count, char **values, char **col_names);
 static int deserialize_user(void *id, int count, char** values, char **col_name);
@@ -30,27 +31,23 @@ bool ll_first_empty(node_t *first)
 }
 
 /**
- * @brief Prints all the tasks in provided
- *        linked list.
+ * @brief Prints the task to stream.
  * 
- * @param head list head
+ * @param taks pointer to task
  * @param stream output stream
  */
-// void ll_print(node_t *head, FILE *stream)
-// {
-//     char date_buf[80];
-//     struct tm ts;
-//     while (head != NULL)
-//     {
-//         ts = *localtime(&(head->add_time));
-//         strftime(date_buf, sizeof(date_buf), "%a %Y-%m-%d %H:%M:%S", &ts);
-//         fprintf(stream, "Date: %s\n", date_buf);
-//         fprintf(stream, "%s\n", head->author);
-//         fprintf(stream, "%s\n\n", head->content);
-//         head = head->next;
-//     }
-// }
-
+void print_task(task_t *task, FILE *stream)
+{
+    const size_t DATEBUF_SIZE = 80;
+    char date_buf[DATEBUF_SIZE];
+    struct tm ts;
+    ts = *localtime(&(task->timestamp));
+    strftime(date_buf, DATEBUF_SIZE, "%a %Y-%m-%d %H:%M:%S", &ts);
+    fprintf(stream, "Date: %s\n", date_buf);
+    fprintf(stream, "%s\n", task->author->name);
+    fprintf(stream, "%s\n", task->content);
+    fputc('\n', stream);
+}
 /**
  * @brief Get the last node of the linked list.
  * 
@@ -104,10 +101,50 @@ void ll_foreach(node_t *head, void (*operation)(void *node))
     }
 }
 
-
-
 /******************************************************/
 
+struct ai_id {
+    char *table;
+    int id;
+};
+
+static int deserialize_id(void *id, int count, char **values, char **col_name)
+{
+    struct ai_id *temp = (struct ai_id *)id;
+    for (int i = 0; i < count; i++)
+    {
+        if (strcmp(col_name[i], temp->table) == 0)
+        {
+            temp->id = atoi(values[i]);
+        }
+    }
+    return SQLITE_OK;
+}
+
+/**
+ * @brief 
+ * 
+ * @param db 
+ * @param table 
+ * @param id 
+ * @return int 
+ */
+int db_select_next_id(sqlite3 *db, char *table, int *id)
+{
+    char *db_err_msg = NULL;
+    struct ai_id id_helper;
+    id_helper.table = table;
+    char *sql = "SELECT * FROM SQLITE_SEQUENCE";
+    if (sqlite3_exec(db, sql, deserialize_id, &id_helper, &db_err_msg) != DB_SUCCESS)
+    {
+        db_err("An error occured while selecting next autoincrement id: %s\n",
+            db_err_msg, sql, stderr);
+        db_cleanup(NULL, db_err_msg);
+        return DB_ERR;
+    }
+    *id = id_helper.id + 1; // Bump id to next
+    return DB_SUCCESS;
+}
 
 /**
  * @brief Get the user id by username.
@@ -136,8 +173,8 @@ int db_select_user(user_t *user, sqlite3 *db, user_t *result)
     {
         return DB_INVALID_PARAM;
     }
-    int rc = sqlite3_exec(db, sql, deserialize_user, result, &db_err_msg);
-    if (rc != SQLITE_OK)
+
+    if (sqlite3_exec(db, sql, deserialize_user, result, &db_err_msg) != SQLITE_OK)
     {
         db_err("An error occured while selecting user id: %s\n",
             db_err_msg, sql, stderr);

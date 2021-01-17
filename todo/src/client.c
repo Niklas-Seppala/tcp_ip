@@ -6,8 +6,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include <time.h>
-#include "todolist.h"
+
+#include "utils.h"
+#include "network.h"
 
 int connect_to_server(const char *hostname, const char *port)
 {
@@ -44,7 +45,7 @@ void send_msg(const char *hostname, const char *port, char *msg, size_t msg_len)
     }
     else if (sent_bytes != msg_len)
     {
-        user_err("write()", "sent unexpected number of bytes");
+        user_err("write()", "sent unexpected number of bytes", FATAL);
     }
     printf("Sent!\n");
     close(sock);
@@ -59,21 +60,21 @@ int main(int argc, char **argv)
 {
     if (argc != 3)
     {
-        user_err("Params", "<HOST> <SERVICE>");
+        user_err("Params", "<HOST> <SERVICE>", FATAL);
     }
     const char *hostname = argv[1];
     const char *port = argv[2];
-    const int tbuffer_size = BUFFER_SIZE - BUFFER_OFFSET;
+    const int tbuffer_size = L_NETWORKBUF_SIZE - NETWORKBUF_OFFSET;
     char task_buffer[tbuffer_size];
-    char cmd_buffer[SBUFFER_SIZE];
-    char username[SBUFFER_SIZE];
-    char msg[BUFFER_SIZE];
+    char cmd_buffer[S_NETWORKBUF_SIZE];
+    char username[S_NETWORKBUF_SIZE];
+    char msg[L_NETWORKBUF_SIZE];
 
-    get_input("Who are you? :", username, SBUFFER_SIZE, NULL);
+    get_input("Who are you? :", username, S_NETWORKBUF_SIZE, NULL);
 
     for(;;)
     {
-        get_input("Input: ", cmd_buffer, SBUFFER_SIZE, NULL);
+        get_input("Input: ", cmd_buffer, S_NETWORKBUF_SIZE, NULL);
         if (strcmp(cmd_buffer, "add") == 0)
         {
             get_input("Add task to todo list: ", task_buffer,

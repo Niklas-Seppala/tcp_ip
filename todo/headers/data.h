@@ -1,9 +1,9 @@
-#include "todolist.h"
-#include <sqlite3.h>
-#include <stdbool.h>
-
 #if !defined(DATA_H)
 #define DATA_H
+
+#include "network.h"
+#include <sqlite3.h>
+#include <stdbool.h>
 
 #define DB_CONN_ERR (-1)
 #define DB_ERR (-1)
@@ -14,25 +14,32 @@
 typedef int (*select_cb)(void *, int, char **, char **);
 
 typedef struct node {
-    void *value;
     struct node *next;
+    void *value;
 } node_t;
 
 typedef struct user {
     int id;
-    char name[SBUFFER_SIZE];
-    char email[SBUFFER_SIZE];
+    char name[S_NETWORKBUF_SIZE];
+    char email[S_NETWORKBUF_SIZE];
     time_t timestamp;
 } user_t;
 
 typedef struct task
 {
     int id;
-    user_t *author;
-    char content[BUFFER_SIZE];
+    struct user *author;
+    char content[L_NETWORKBUF_SIZE];
     time_t timestamp;
 } task_t;
 
+/**
+ * @brief Prints the task to stream.
+ * 
+ * @param taks pointer to task
+ * @param stream output stream
+ */
+void print_task(task_t *task, FILE *stream);
 // DATABSE
 
 /**
@@ -182,15 +189,6 @@ int db_delete_task(task_t *task, sqlite3 *db, int *rows_affected);
  * @return false if head is not used.
  */
 bool ll_first_empty(node_t *first);
-
-/**
- * @brief Prints all the tasks in provided
- *        linked list.
- * 
- * @param head list head
- * @param stream output stream
- */
-// void ll_print(node_t *head, FILE *stream);
 
 /**
  * @brief Links the provided node at the end of the

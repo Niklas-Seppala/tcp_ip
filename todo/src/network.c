@@ -1,67 +1,10 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netdb.h>
-#include <stdlib.h>
-#include <string.h>
 #include <arpa/inet.h>
-
-#include "todolist.h"
-
-void get_input(const char* output, char *buffer, size_t buff_len, size_t *out_len)
-{
-    if (output != NULL) {
-        fputs(output, stdout);
-    }
-    fgets(buffer, buff_len, stdin);
-    size_t len = strlen(buffer);
-    if (buffer[len - 1] == '\n') {
-        buffer[len - 1] = '\0';
-        if (out_len != NULL) {
-            *out_len = len-1;
-        }
-    } else if (out_len != NULL) {
-        *out_len = len;
-    }
-}
-
-/**
- * @brief Prints user related error to console. Exits program
- * with EXIT_FAILURE.
- * 
- * @param source source function
- * @param detail description message
- */
-void user_err(const char *source, const char *detail)
-{
-    fputs(source, stderr);
-    fputs(": ", stderr);
-    fputs(detail, stderr);
-    fputc('\n', stderr);
-    exit(EXIT_FAILURE);
-}
-
-/**
- * @brief Prints syste related error to console. Exits the program
- * with EXIT_FAILURE.
- *
- * @param source description message
- */
-void sys_err(const char *source)
-{
-    perror(source);
-    exit(EXIT_FAILURE);
-}
-
-void clear()
-{
-#ifdef unix
-    system("clear");
-#elif _WIN32
-    system("cls");
-#endif
-}
+#include <stdio.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <string.h>
+#include <unistd.h>
+#include "utils.h"
 
 void print_port(int sock, const char* template_str, FILE *stream) {
     
@@ -88,6 +31,7 @@ void print_sock(int sock, FILE *stream)
     fprintf(stream, "%s:%u\n", buffer, port);
 }
 
+
 void print_peer(int sock)
 {
     void *ip = NULL;
@@ -102,11 +46,6 @@ void print_peer(int sock)
     fprintf(stdout, "%s:%u\n", buffer, port);
 }
 
-void str_ins(char *dest, char *src, int offset, size_t len) {
-    dest += offset;
-    for (size_t i = 0; i < len; i++)
-        *dest++ = *src++;
-}
 
 void print_addr_info(struct sockaddr *addr, FILE *stream)
 {
@@ -182,7 +121,7 @@ int setup_client_socket(const char *host, const char *service)
     struct addrinfo *server_addr;
     int ret_val = getaddrinfo(host, service, &addr_query, &server_addr);
     if (ret_val != 0)
-        user_err("getaddrinfo()", gai_strerror(ret_val));
+        user_err("getaddrinfo()", gai_strerror(ret_val), FATAL);
 
     // Search working address from linked address list.
     int sock = -1;
